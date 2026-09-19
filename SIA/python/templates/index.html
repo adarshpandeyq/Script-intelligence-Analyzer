@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Script Intelligence Analyzer</title>
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<style>
+  :root { --bg:#07061a; --panel:rgba(22,20,51,.72); --accent:#8b5cf6; --accent2:#38bdf8; --text:#e9e7ff; --muted:#a5a0c8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;
+    background-image:radial-gradient(900px 600px at 10% -10%,rgba(139,92,246,.28),transparent 60%),
+      radial-gradient(800px 520px at 92% 0%,rgba(56,189,248,.18),transparent 55%);
+    background-attachment:fixed; }
+  .wrap { max-width:1100px; margin:0 auto; padding:32px 20px 60px; }
+  h1 { font-size:34px; margin:12px 0 6px; }
+  h2 { font-size:20px; margin:0 0 12px; }
+  .glass { background:linear-gradient(155deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.1); border-radius:16px; padding:20px; margin-bottom:20px;
+    backdrop-filter:blur(18px); }
+  .btn { display:inline-flex; align-items:center; gap:8px; border:0; border-radius:999px;
+    padding:11px 20px; font-weight:600; cursor:pointer; color:#fff;
+    background:linear-gradient(100deg,#7c3aed,#6366f1 45%,#38bdf8); }
+  .btn[disabled] { opacity:.55; cursor:not-allowed; }
+  .ghost { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.16); color:var(--text);
+    border-radius:999px; padding:10px 16px; cursor:pointer; font-weight:500; }
+  textarea, input[type=text] { width:100%; background:rgba(255,255,255,.05); color:var(--text);
+    border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:11px 14px; font-family:inherit; }
+  textarea { font-family:ui-monospace,monospace; font-size:12px; min-height:130px; }
+  .muted { color:var(--muted); font-size:13px; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
+  .stat { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px; }
+  .stat b { display:block; font-size:22px; }
+  .chip { display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px;
+    border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.05); color:#cbb8ff;
+    text-transform:uppercase; letter-spacing:.06em; }
+  .err { border:1px solid rgba(244,63,94,.5); background:rgba(244,63,94,.12); color:#fecdd3;
+    padding:12px 14px; border-radius:12px; font-size:13px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); padding:8px; }
+  td { padding:8px; border-top:1px solid rgba(255,255,255,.07); }
+  .bar { height:8px; border-radius:99px; background:linear-gradient(90deg,#7c3aed,#38bdf8); }
+  ul.clean { list-style:none; padding:0; margin:0; }
+  ul.clean li { padding:6px 0; font-size:13px; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="chip">AI · NLP · Screenplay Intelligence</span>
+  <h1>Script Intelligence Analyzer</h1>
+  <p class="muted">Upload a .txt or .pdf screenplay to extract characters, scenes, emotions,
+     themes, suspense and possible foreshadowing.</p>
+
+  <div class="glass">
+    <form id="form">
+      <p><input type="file" id="file" accept=".txt,.pdf,.text,.md" /></p>
+      <p><input type="text" id="title" placeholder="Script title (optional)" /></p>
+      <p><textarea id="text" placeholder="…or paste the script text here"></textarea></p>
+      <p>
+        <button class="btn" id="submit" type="submit">Analyze Script</button>
+        <button class="ghost" id="sample" type="button">Load sample script</button>
+        <a class="ghost" href="/ppt">📊 Project PPT</a>
+      </p>
+    </form>
+    <div id="status" class="muted hidden">Analyzing… extracting text, parsing scenes, scoring emotions…</div>
+    <div id="error" class="err hidden"></div>
+  </div>
+
+  <div id="results" class="hidden">
+    <div class="glass">
+      <h2 id="r-title"></h2>
+      <p class="muted" id="r-summary"></p>
+      <div class="stats" id="r-stats"></div>
+    </div>
+    <div class="glass"><h2>Suspense / tension curve</h2><div id="suspense-plot"></div></div>
+    <div class="glass"><h2>Emotion by scene</h2><div id="emotion-plot"></div></div>
+    <div class="glass"><h2>Characters</h2><div id="characters"></div></div>
+    <div class="glass"><h2>Themes</h2><div id="themes"></div></div>
+    <div class="glass"><h2>Scenes</h2><div id="scenes"></div></div>
+    <div class="glass"><h2>Possible foreshadowing</h2><div id="fore"></div></div>
+    <div class="glass"><h2>Final intelligence report</h2><pre id="report" style="white-space:pre-wrap;font-size:12px;"></pre></div>
+  </div>
+
+  {% if recent %}
+  <div class="glass">
+    <h2>Recent analyses</h2>
+    <ul class="clean">
+      {% for r in recent %}
+      <li><a href="/api/analyses/{{ r.id }}" style="color:#c4b5fd">#{{ r.id }} {{ r.title }}</a>
+        — {{ r.word_count }} words, {{ r.scene_count }} scenes, {{ r.character_count }} characters</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const show = (el, on) => el.classList.toggle('hidden', !on);
+
+$('sample').onclick = async () => {
+  const res = await fetch('/static/sample_horror_script.txt');
+  $('text').value = await res.text();
+  $('title').value = 'The Third Night';
+};
+
+$('form').onsubmit = async (e) => {
+  e.preventDefault();
+  show($('error'), false); show($('status'), true); $('submit').disabled = true;
+  const fd = new FormData();
+  if ($('file').files[0]) fd.append('file', $('file').files[0]);
+  if ($('text').value.trim()) fd.append('text', $('text').value);
+  if ($('title').value.trim()) fd.append('title', $('title').value);
+  try {
+    const res = await fetch('/api/analyze', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Analysis failed');
+    render(data);
+  } catch (err) {
+    show($('error'), true); $('error').textContent = err.message;
+  } finally {
+    show($('status'), false); $('submit').disabled = false;
+  }
+};
+
+function render(d) {
+  show($('results'), true);
+  $('r-title').textContent = d.title;
+  $('r-summary').textContent = d.report.story_summary;
+  const s = d.statistics;
+  $('r-stats').innerHTML = [['Words', s.word_count], ['Scenes', s.scene_count],
+    ['Characters', s.character_count], ['Dialogue lines', s.dialogue_lines],
+    ['Runtime', s.estimated_runtime_minutes + ' min'], ['Lead', d.protagonist || '—']]
+    .map(([k, v]) => `<div class="stat"><span class="muted">${k}</span><b>${v}</b></div>`).join('');
+
+  Plotly.newPlot('suspense-plot', [{
+    x: d.suspense.per_scene.map(p => p.scene), y: d.suspense.per_scene.map(p => p.score),
+    type: 'scatter', mode: 'lines+markers', line: { color: '#c084fc' }, fill: 'tozeroy',
+    fillcolor: 'rgba(168,85,247,.18)', name: 'Tension'
+  }], { paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#a5a0c8' }, margin: { t: 10, l: 40, r: 10, b: 40 },
+        xaxis: { title: 'Scene' }, yaxis: { title: 'Tension', range: [0, 100] } }, { responsive: true });
+
+  const emotions = ['fear', 'happiness', 'sadness', 'anger', 'surprise', 'neutral'];
+  const colors = { fear: '#f43f5e', happiness: '#34d399', sadness: '#60a5fa', anger: '#fb923c', surprise: '#a78bfa', neutral: '#94a3b8' };
+  Plotly.newPlot('emotion-plot', emotions.map(e => ({
+    x: d.emotion.per_scene.map(p => p.scene), y: d.emotion.per_scene.map(p => p['pct_' + e]),
+    type: 'scatter', mode: 'lines', stackgroup: 'one', name: e, line: { color: colors[e] }
+  })), { paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: '#a5a0c8' },
+        margin: { t: 10, l: 40, r: 10, b: 40 }, xaxis: { title: 'Scene' }, yaxis: { title: '%' } },
+        { responsive: true });
+
+  $('characters').innerHTML = '<table><tr><th>Character</th><th>Lines</th><th>Words</th><th>Scenes</th><th>Prominence</th></tr>' +
+    d.characters.map(c => `<tr><td>${c.name}</td><td>${c.dialogue_lines}</td><td>${c.words_spoken}</td>
+      <td>${c.scene_count}</td><td><div class="bar" style="width:${c.prominence}%"></div></td></tr>`).join('') + '</table>';
+
+  $('themes').innerHTML = d.themes.map(t => `<p><b>${t.theme}</b> — ${t.relevance}/100
+    <div class="bar" style="width:${t.relevance}%"></div>
+    <span class="muted">${t.keywords.slice(0, 5).join(', ')}</span></p>`).join('');
+
+  $('scenes').innerHTML = d.scenes.map(sc => `<p><b>Scene ${sc.number} — ${sc.heading}</b><br/>
+    <span class="muted">${sc.characters.join(', ') || 'no dialogue'}</span><br/>
+    ${sc.summary}</p>`).join('');
+
+  $('fore').innerHTML = d.foreshadowing.length ? d.foreshadowing.map(f =>
+    `<p><b>⚠ POSSIBLE FORESHADOWING — Scene ${f.setup_scene} → Scene ${f.payoff_scene}</b>
+     (${f.confidence} confidence, similarity ${f.similarity})<br/>${f.explanation}</p>`).join('')
+    : '<p class="muted">No strong setup → payoff pairs detected.</p>';
+
+  $('report').textContent = d.report.markdown;
+}
+</script>
+</body>
+</html>
