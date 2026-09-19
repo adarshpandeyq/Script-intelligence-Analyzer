@@ -237,7 +237,6 @@ Typical result:
 ## For more detail Visit - 
 https://script-intelligence-five.vercel.app/
 Check PPT at the above URl For the Clear Explanation oF the Project     
-
 Thank You
 
 
