@@ -1,11 +1,6 @@
 # Script-intelligence-Analyzer
 🎬 Script Intelligence Analyzer
 > **Upload a movie or short-film script (PDF / TXT) and get an AI-powered intelligence report: characters, scenes, emotions, themes, a suspense curve, possible foreshadowing — plus a Script Doctor that finds story problems and generates ranked fixes.**
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-App%20Router-black?logo=next.js)](https://nextjs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Drizzle%20ORM-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![NLP](https://img.shields.io/badge/NLP-spaCy%20%7C%20Transformers%20%7C%20scikit--learn-8B5CF6)](https://spacy.io/)
----
 
 ---
 ## 🧠 Overview
